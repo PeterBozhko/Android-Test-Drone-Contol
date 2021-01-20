@@ -3,14 +3,18 @@ package com.example.testappforgoescan;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.pm.ActivityInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,16 +41,17 @@ public class MainActivity extends AppCompatActivity {
         TextView tvLeft = findViewById(R.id.TextLeft);
         TextView tvRight = findViewById(R.id.TextRight);
         Button btn = findViewById(R.id.connection);
+        ImageView image = findViewById(R.id.image);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 connection = new Connection();
-                connection.execute();
+                connection.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
         });
         JoystickView joystickLeft = (JoystickView) findViewById(R.id.joystickLeft);
         connection = new Connection();
-        connection.execute();
+        connection.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         joystickLeft.setOnMoveListener(new JoystickView.OnMoveListener() {
             @Override
             public void onMove(int angle, int strength) {
@@ -54,7 +59,14 @@ public class MainActivity extends AppCompatActivity {
                 data[2] = (byte) (127 * strength / 100 * Math.sin(Math.toRadians(angle)));
                 tvLeft.setText(String.format("Angle = %d , Strength = %d", angle, strength));
                 tvData.setText(String.format("Data: %s", Arrays.toString(data)));
-                connection.SendDataToNetwork(data);
+                byte[] answer = connection.SendDataToNetwork(data);
+                System.out.println("Answer: ");
+                for (byte b: answer){
+                    if ( b != 0) System.out.print(b + ' ');
+                }
+                System.out.println();
+//                Bitmap bmp= BitmapFactory.decodeByteArray(answer,0,answer.length);
+//                image.setImageBitmap(bmp);
             }
         });
         JoystickView joystickRight = (JoystickView) findViewById(R.id.joystickRight);
@@ -65,7 +77,9 @@ public class MainActivity extends AppCompatActivity {
                 data[4] = (byte) (127 * strength / 100 * Math.sin(Math.toRadians(angle)));
                 tvRight.setText(String.format("Angle = %d , Strength = %d", angle, strength));
                 tvData.setText(String.format("Data: %s", Arrays.toString(data)));
-                connection.SendDataToNetwork(data);
+                byte[] answer = connection.SendDataToNetwork(data);
+                Drawable d = Drawable.createFromStream(new ByteArrayInputStream(answer), null);
+                image.setImageDrawable(d);
             }
         });
     }
@@ -75,6 +89,9 @@ public class MainActivity extends AppCompatActivity {
         InputStream is;
         OutputStream os;
         DatagramSocket datagramSocket;
+        byte[] image = new byte[5273];
+        byte[] buffer = new byte[5273];
+        DatagramPacket pack = new DatagramPacket(buffer, buffer.length);
 
         @Override
         protected Boolean doInBackground(Void... params) {
@@ -85,25 +102,36 @@ public class MainActivity extends AppCompatActivity {
                 if (socket.isConnected()) {
                     is = socket.getInputStream();
                     os = socket.getOutputStream();
-                    System.out.println("______________VSE__1_____________");
+                    image[0] = 3;
+                    while (socket.isConnected()) {
+                        image[0]++;
+                        datagramSocket.receive(pack);
+                        image = pack.getData();
+                        image[0]++;
+
+
+
+                        if (pack.getAddress() != null){
+                            image[0] = 1;
+                        }
+                    }
                 }
             } catch (Exception e) {
-                System.out.println("______________VSE_______________");
                 e.printStackTrace();
-//            } finally {
-//                try {
-//                    is.close();
-//                    os.close();
-//                    socket.close();
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
+                result = true;
+            } finally {
+                try {
+                    is.close();
+                    os.close();
+                    socket.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
             return result;
         }
 
-        public void SendDataToNetwork(byte[] data) {
-
+        public byte[] SendDataToNetwork(byte[] data) {
             try {
                 if (socket.isConnected()) {
                     new Thread(new Runnable() {
@@ -120,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            return image;
         }
 
 //        @Override
