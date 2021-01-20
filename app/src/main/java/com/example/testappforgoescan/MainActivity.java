@@ -74,43 +74,48 @@ public class MainActivity extends AppCompatActivity {
         Socket socket;
         InputStream is;
         OutputStream os;
+        DatagramSocket datagramSocket;
 
         @Override
         protected Boolean doInBackground(Void... params) {
             boolean result = false;
             try {
-                socket = new Socket(InetAddress.getByName(host), port);
+                socket = new Socket(InetAddress.getByName("10.0.2.2"), port);
+                datagramSocket = new DatagramSocket();
                 if (socket.isConnected()) {
                     is = socket.getInputStream();
                     os = socket.getOutputStream();
-                    byte[] buffer = new byte[4096];
-                    int read = is.read(buffer, 0, 4096);
-                    while(read != -1){
-                        byte[] tempdata = new byte[read];
-                        System.arraycopy(buffer, 0, tempdata, 0, read);
-                        publishProgress(tempdata);
-                        read = is.read(buffer, 0, 4096);
-                    }
+                    System.out.println("______________VSE__1_____________");
                 }
             } catch (Exception e) {
+                System.out.println("______________VSE_______________");
                 e.printStackTrace();
-                result = true;
-            } finally {
-                try {
-                    is.close();
-                    os.close();
-                    socket.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+//            } finally {
+//                try {
+//                    is.close();
+//                    os.close();
+//                    socket.close();
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
             }
             return result;
         }
 
         public void SendDataToNetwork(byte[] data) {
+
             try {
                 if (socket.isConnected()) {
-                    os.write(data);
+                    new Thread(new Runnable() {
+                        public void run() {
+                            try {
+                                DatagramPacket dp = new DatagramPacket(data, data.length, socket.getInetAddress(), 8001);
+                                datagramSocket.send(dp);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
