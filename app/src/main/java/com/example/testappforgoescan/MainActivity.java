@@ -59,14 +59,7 @@ public class MainActivity extends AppCompatActivity {
                 data[2] = (byte) (127 * strength / 100 * Math.sin(Math.toRadians(angle)));
                 tvLeft.setText(String.format("Angle = %d , Strength = %d", angle, strength));
                 tvData.setText(String.format("Data: %s", Arrays.toString(data)));
-                byte[] answer = connection.SendDataToNetwork(data);
-                System.out.println("Answer: ");
-                for (byte b: answer){
-                    if ( b != 0) System.out.print(b + ' ');
-                }
-                System.out.println();
-//                Bitmap bmp= BitmapFactory.decodeByteArray(answer,0,answer.length);
-//                image.setImageBitmap(bmp);
+                connection.SendDataToNetwork(data);
             }
         });
         JoystickView joystickRight = (JoystickView) findViewById(R.id.joystickRight);
@@ -77,9 +70,7 @@ public class MainActivity extends AppCompatActivity {
                 data[4] = (byte) (127 * strength / 100 * Math.sin(Math.toRadians(angle)));
                 tvRight.setText(String.format("Angle = %d , Strength = %d", angle, strength));
                 tvData.setText(String.format("Data: %s", Arrays.toString(data)));
-                byte[] answer = connection.SendDataToNetwork(data);
-                Drawable d = Drawable.createFromStream(new ByteArrayInputStream(answer), null);
-                image.setImageDrawable(d);
+                connection.SendDataToNetwork(data);
             }
         });
     }
@@ -89,9 +80,9 @@ public class MainActivity extends AppCompatActivity {
         InputStream is;
         OutputStream os;
         DatagramSocket datagramSocket;
+        DatagramSocket imageSocket;
         byte[] image = new byte[5273];
         byte[] buffer = new byte[5273];
-        DatagramPacket pack = new DatagramPacket(buffer, buffer.length);
 
         @Override
         protected Boolean doInBackground(Void... params) {
@@ -102,18 +93,12 @@ public class MainActivity extends AppCompatActivity {
                 if (socket.isConnected()) {
                     is = socket.getInputStream();
                     os = socket.getOutputStream();
-                    image[0] = 3;
+                    DatagramPacket pack = new DatagramPacket(buffer, buffer.length);
                     while (socket.isConnected()) {
-                        image[0]++;
+//                        publishProgress(buffer);
+
                         datagramSocket.receive(pack);
-                        image = pack.getData();
-                        image[0]++;
-
-
-
-                        if (pack.getAddress() != null){
-                            image[0] = 1;
-                        }
+                        publishProgress(pack.getData());
                     }
                 }
             } catch (Exception e) {
@@ -131,13 +116,14 @@ public class MainActivity extends AppCompatActivity {
             return result;
         }
 
-        public byte[] SendDataToNetwork(byte[] data) {
+        public void SendDataToNetwork(byte[] data) {
             try {
                 if (socket.isConnected()) {
                     new Thread(new Runnable() {
                         public void run() {
                             try {
                                 DatagramPacket dp = new DatagramPacket(data, data.length, socket.getInetAddress(), 8001);
+                                tvServerStatus.setText(socket.getInetAddress().toString());
                                 datagramSocket.send(dp);
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -148,22 +134,20 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            return image;
         }
 
-//        @Override
-//        protected void onProgressUpdate(byte[]... values) {
-//            if (values.length > 0) {
-//                textStatus.setText(new String(values[0]));
-//            }
-//        }
-//        @Override
-//        protected void onPostExecute(Boolean result) {
-//            if (result) {
-//                tvServerStatus.setText("There was a connection error.");
-//            } else {
-//                tvServerStatus.setText("Выполнено");
-//            }
-//        }
+        @Override
+        protected void onProgressUpdate(byte[]... data) {
+            System.out.println("Answer: ");
+            for (byte b : data[0]){
+                if (b > 0) {
+                    System.out.print(b + ' ');
+                }
+            }
+            System.out.println();
+            tvServerStatus.setText(String.format("Answer: %s ", data[0][0]));
+//                Bitmap bmp= BitmapFactory.decodeByteArray(answer,0,answer.length);
+//                image.setImageBitmap(bmp);
+        }
     }
 }
