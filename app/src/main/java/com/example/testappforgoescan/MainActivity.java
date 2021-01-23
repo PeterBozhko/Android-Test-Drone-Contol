@@ -22,7 +22,7 @@ import java.net.*;
 import io.github.controlwear.virtual.joystick.android.JoystickView;
 
 public class MainActivity extends AppCompatActivity {
-    static String host = "localhost";
+    static String host = "192.168.31.198";
     static int port = 8888;
     TextView tvServerStatus = null;
     Connection connection = null;
@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
         protected Boolean doInBackground(Void... params) {
             boolean result = false;
             try {
-                socket = new Socket(InetAddress.getByName("192.168.31.198"), port);
+                socket = new Socket(InetAddress.getByName(host), port);
                 datagramSocket = new DatagramSocket(socket.getLocalPort());
                 if (socket.isConnected()) {
                     DatagramPacket pack = new DatagramPacket(buffer, buffer.length);
@@ -140,15 +140,13 @@ public class MainActivity extends AppCompatActivity {
             BufferedReader reader = null;
             HttpURLConnection connection = null;
             try {
-                URL url = new URL("http://192.168.31.198:8889/info");
+                URL url = new URL("http://"+host+":8889/info");
                 connection = (HttpURLConnection) url.openConnection();
                 reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 String line;
                 while ((line=reader.readLine()) != null) {
                     buf.append(line).append("\n");
                 }
-                Log.d("http","http status");
-                Log.d("http",buf.toString());
             }catch (Exception e){
                 e.printStackTrace();
             }
@@ -164,7 +162,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-            Log.d("http","http status_OK");
             return buf.toString();
         }
 
