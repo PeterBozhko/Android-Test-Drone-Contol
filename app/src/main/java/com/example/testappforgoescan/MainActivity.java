@@ -22,7 +22,7 @@ import java.net.*;
 import io.github.controlwear.virtual.joystick.android.JoystickView;
 
 public class MainActivity extends AppCompatActivity {
-    static String host = "192.168.31.198";
+    static String host = "192.168.4.1";
     static int port = 8888;
     TextView tvServerStatus = null;
     Connection connection = null;
